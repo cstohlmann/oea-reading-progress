@@ -1,101 +1,33 @@
-# Pipelines
+# Notebooks
 
-This module uses a Synapse pipeline to:
-1. Land Microsoft Education Insights K-12 test data into ```stage1/Transactional/M365/v1.14``` of the data lake (this step is omitted for production data).
-2. Ingest data into ```stage2/Ingested/reading_progress/v0.1```.
-3. Correct the table schemas into ```stage2/Ingested_Corrected/reading_progress/v0.1``` and create a lake database (db) for queries.
-4. Refine data into ```stage2/Refined/reading_progress/v0.1/(general and sensitive)``` and create lake and SQL dbs for queries.
-      * Use the ```sdb_(dev or other workspace)_s2r_reading_progress_v0p1``` for connecting the serverless SQL db with Power BI DirectQuery.
-    
-Notes:
-- Ingestion initially copies the data from ```stage1``` to ```stage2/Ingested```, except changes the file format from CSVs to Delta tables.
-   * One of the later steps in the ingestion process, corrects and structures each module table's schema, as needed; these corrected tables are written to ```stage2/Ingested_Corrected```.
-- Data columns contianing personal identifiable information (PII) are identified in the data schemas located in the [module metadata.csv](https://github.com/microsoft/OpenEduAnalytics/blob/main/modules/module_catalog/Reading_Progress/data/metadata.csv).
-- As data is refined from ```stage2/Ingested_Corrected``` to ```stage2/Refined/.../(general and sensitive)```, data is separated into pseudonymized data where PII columns hashed or masked (```stage2/Refined/.../general```) and lookup tables containing the PII (```stage2/Refined/.../sensitive```). Non-pseudonmized data will then be protected at higher security levels.
+This module has two sets of notebooks:
+ 1. One notebook is used to demonstrate an alternate method of data processing (i.e. landing, ingesting, and refining Graph data) with examples of explorative possbilities.
+ 2. The rest of the (3 other) notebooks are necessary to support the main [module pipeline](https://github.com/microsoft/OpenEduAnalytics/tree/main/modules/module_catalog/Reading_Progress/pipeline) for ingestion, cleaning/correcting each table's schema from the data source, and pseudonymizing the data.
 
-Module Pipeline for Test Data  | Module Pipeline for Production Data
-:-------------------------:|:-------------------------:
-![](https://github.com/microsoft/OpenEduAnalytics/blob/main/modules/module_catalog/Microsoft_Education_Insights/docs/images/v0.1_pipeline_instructions/module_v0.1_test_data_pipeline_overview.png) |  ![](https://github.com/microsoft/OpenEduAnalytics/blob/main/modules/module_catalog/Microsoft_Education_Insights/docs/images/v0.1_pipeline_instructions/module_v0.1_prod_data_pipeline_overview.png)  
+All notebooks depend on the [OEA python class](https://github.com/microsoft/OpenEduAnalytics/blob/main/framework/synapse/notebook/OEA_py.ipynb) which is a part of the [OEA framework](https://github.com/microsoft/OpenEduAnalytics/tree/main/framework), and are automatically imported upon running the ```module_reading_progress_v0.1.zip``` setup script.
 
-For production data, this module pipeline can be automatically triggered (i.e. daily or weekly) to keep your Synapse data lake up-to-date.
+**<em>NOTE:** This module depends on [Microsoft Education Insights](https://github.com/microsoft/OpenEduAnalytics/tree/main/modules/module_catalog/Microsoft_Education_Insights) data source, to extract the reading progress data from the Insights/M365 activity table.</em>
 
-## Pipeline Setup Instructions
+## Module Example Notebook: [ReadingProgress_example.ipynb](https://github.com/microsoft/OpenEduAnalytics/blob/main/modules/module_catalog/Reading_Progress/notebook/ReadingProgress_example.ipynb)
 
-Two sets of instructions are included:
-1. [Test data pipeline instructions](https://github.com/microsoft/OpenEduAnalytics/tree/main/modules/module_catalog/Reading_Progress/pipeline#test-data-pipeline-instructions)
-2. [Production data pipeline instructions](https://github.com/microsoft/OpenEduAnalytics/tree/main/modules/module_catalog/Reading_Progress/pipeline#production-data-pipeline-instructions)
+This Reading Progress module example notebook:
+ - lands either K-12 or higher education test data into ```stage1/Transactional/M365/v1.14``` of your data lake (refer to steps in the notebook for how to choose which dataset to land), 
+ - ingests the unstructured tables into ```stage2/Ingested/reading_progress/v0.1```, 
+ - corrects the each table's schema to structure the tables properly - writing the tables to ```stage2/Ingested_Corrected/reading_progress/v0.1```, 
+ - refines the data into ```stage2/Refined/reading_progress/v0.1/(general and sensitive)``` by pseudonymizing (i.e. hashing or masking) sensitive information. 
 
-### Test Data Pipeline Instructions
+Basic functions for data exploration and visualization from Stage 1 to Stage 2 data lakes are also included. Steps are clearly outlined and commented.
 
-<details><summary>Expand Test Data Pipeline Instructions</summary>
-<p>
+## Module Pipeline Support Notebooks
 
-1. Complete the first steps of the [module setup instructions](https://github.com/microsoft/OpenEduAnalytics/tree/main/modules/module_catalog/Microsoft_Education_Insights#module-setup-instructions)
-2. Install the module to your workspace as outlined in the instructions.
-3. Once successfully installed, choose which workspace to work in, and whether you want to run (i.e. land, ingest and refine) the K-12 test data set or the higher education test data set.
-    * <em>Note</em>: Input either ```k12``` or ```hed``` in the ```run_k12_or_hed_test_data``` pipeline parameter, to run this pipeline successfully.
-![](https://github.com/cstohlmann/OpenEduAnalytics/blob/main/modules/module_catalog/Microsoft_Education_Insights/docs/images/v0.1_pipeline_instructions/insights_module_v0.1_instructions_p1.1.png)
+### Module Land Test Data Notebook: [ReadingProgress_ingest.ipynb](https://github.com/microsoft/OpenEduAnalytics/blob/main/modules/module_catalog/Reading_Progress/notebook/ReadingProgress_ingest.ipynb)
 
-4. Explore the pipeline as desired for any additional changes to landing, ingesting, and refining the test data.
-   * <strong><em>NOTE:</strong></em> You may have to attach notebook(s) to Spark pools, if not automatically connected upon module installation. This is be done by opening the notebooks used in the pipeline, and checking that the top header where Azure Synapse notebooks have the "Attach to" field are attached. Otherwise, there will be a notification "Please select a Spark pool to attach before running cell!" Manually attach this notebook to a Spark pool.
-![](https://github.com/cstohlmann/OpenEduAnalytics/blob/main/modules/module_catalog/Microsoft_Education_Insights/docs/images/v0.1_pipeline_instructions/insights_module_v0.1_instructions_p2.1.png)
+Module notebook responsible for speeding up the process of ingesting the tables, while identifying the columns of primary keys. 
 
-5. Commit/Publish any changes and trigger the pipeline manually.
+### Module Schema Correction Notebook: [ReadingProgress_schema_correction.ipynb](https://github.com/microsoft/OpenEduAnalytics/blob/main/modules/module_catalog/Reading_Progress/notebook/ReadingProgress_schema_correction.ipynb)
 
-6. Once the pipeline has been successfully executed, verify that:
+Module table-schema correction notebook, necessary for adding column names to each table and correcting some column data types in the schemas. Steps are clearly outlined in the notebook. Reads from ```stage2/Ingested/reading_progress/v0.1``` and writes to ```stage2/Ingested_Corrected/reading_progress/v0.1```.
 
-- Data has landed in stage1.
-![](https://github.com/microsoft/OpenEduAnalytics/blob/main/modules/module_catalog/Microsoft_Education_Insights/docs/images/v0.1_pipeline_instructions/insights_module_v0.1_instructions_p3.png)
+### Module Refinement Notebook: [ReadingProgress_refine.ipynb](https://github.com/microsoft/OpenEduAnalytics/blob/main/modules/module_catalog/Reading_Progress/notebook/ReadingProgress_refine.ipynb)
 
-- Data has been ingested to stage2/Ingested.
-![](https://github.com/microsoft/OpenEduAnalytics/blob/main/modules/module_catalog/Microsoft_Education_Insights/docs/images/v0.1_pipeline_instructions/insights_module_v0.1_instructions_p4.png)
-
-- Data has been ingested to stage2/Ingested_Corrected.
-![](https://github.com/cstohlmann/OpenEduAnalytics/blob/main/modules/module_catalog/Microsoft_Education_Insights/docs/images/v0.1_pipeline_instructions/insights_module_v0.1_instructions_p7.png)
-
-- Data has been refined to stage2/Refined.
-     * <em>Note</em>: There is still debugging to refine the following tables into ```stage2/Refined```: PersonDemographicEthnicity, PersonDemographicPersonFlag, PersonDemographicRace, PersonEmailAddress, PersonIdentifier, PersonOrganizationRole, and PersonPhoneNumber.
-![](https://github.com/microsoft/OpenEduAnalytics/blob/main/modules/module_catalog/Microsoft_Education_Insights/docs/images/v0.1_pipeline_instructions/insights_module_v0.1_instructions_p5.png)
-
-- SQL database has been created: ```sdb_dev_s2r_m365_v1p14``` (or, if workspace parameter was changed, replace dev with chosen workspace upon trigger).
-
-- **Final note**: The same processing of the test data can be accomplished by following the steps and running the [module example notebook](https://github.com/microsoft/OpenEduAnalytics/blob/main/modules/module_catalog/Microsoft_Education_Insights/notebook/Insights_example.ipynb).
-![](https://github.com/microsoft/OpenEduAnalytics/blob/main/modules/module_catalog/Microsoft_Education_Insights/docs/images/v0.1_pipeline_instructions/insights_module_v0.1_instructions_p6.png)
-
-</p>
-</details>
-
-### Production Data Pipeline Instructions
-
-<details><summary>Expand Production Data Pipeline Instructions</summary>
-<p>
-
-1. Complete the [Test Data Pipeline Instructions](https://github.com/microsoft/OpenEduAnalytics/tree/main/modules/module_catalog/Microsoft_Education_Insights/pipeline#test-data-pipeline-instructions), but do not execute the pipeline yet.
-2. Review the Microsoft Insights [data feed setup instructions](https://docs.microsoft.com/en-us/schooldatasync/enable-education-data-lake-export).
-3. Open the 0_main_insights pipeline. Delete the initial "1_land_insights_test_data" pipeline activity, and edit any sub-pipeline parameters and variables as needed. The final results is shown below.
-![](https://github.com/microsoft/OpenEduAnalytics/blob/main/modules/module_catalog/Microsoft_Education_Insights/docs/images/v0.1_pipeline_instructions/module_v0.1_prod_data_pipeline_overview.png)
-
-4. Commit/Publish any changes and trigger the pipeline manually.
-
-5. Once the pipeline has been successfully executed, verify that:
-
-- Data has landed in stage1.
-![](https://github.com/microsoft/OpenEduAnalytics/blob/main/modules/module_catalog/Microsoft_Education_Insights/docs/images/v0.1_pipeline_instructions/insights_module_v0.1_instructions_p3.png)
-
-- Data has been ingested to stage2/Ingested.
-![](https://github.com/microsoft/OpenEduAnalytics/blob/main/modules/module_catalog/Microsoft_Education_Insights/docs/images/v0.1_pipeline_instructions/insights_module_v0.1_instructions_p4.png)
-
-- Data has been ingested to stage2/Ingested_Corrected.
-![](https://github.com/cstohlmann/OpenEduAnalytics/blob/main/modules/module_catalog/Microsoft_Education_Insights/docs/images/v0.1_pipeline_instructions/insights_module_v0.1_instructions_p7.png)
-
-- Data has been refined to stage2/Refined.
-     * <em>Note</em>: There is still debugging to refine the following tables into ```stage2/Refined```: PersonDemographicEthnicity, PersonDemographicPersonFlag, PersonDemographicRace, PersonEmailAddress, PersonIdentifier, PersonOrganizationRole, and PersonPhoneNumber.
-![](https://github.com/microsoft/OpenEduAnalytics/blob/main/modules/module_catalog/Microsoft_Education_Insights/docs/images/v0.1_pipeline_instructions/insights_module_v0.1_instructions_p5.png)
-
-- SQL database has been created: ```sdb_dev_s2r_m365_v1p14``` (or, if workspace parameter was changed, replace dev with chosen workspace upon trigger).
-
-- **Final note**: The same processing of the data can be accomplished by following the steps and running the [module example notebook](https://github.com/microsoft/OpenEduAnalytics/blob/main/modules/module_catalog/Microsoft_Education_Insights/notebook/Insights_example.ipynb).
-![](https://github.com/microsoft/OpenEduAnalytics/blob/main/modules/module_catalog/Microsoft_Education_Insights/docs/images/v0.1_pipeline_instructions/insights_module_v0.1_instructions_p6.png)
-
-</p>
-</details>
+Module-specific pseudonymization notebook, necessary for speeding up the process of refining the module tables. Steps are clearly outlined in the notebook.
